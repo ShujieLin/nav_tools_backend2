@@ -17,6 +17,7 @@ func RegisterRoutes(r *gin.Engine) {
 		v1.POST("/users", createUser)
 		v1.GET("/users", listUsers)
 		v1.GET("/users/:id", getUser)
+		v1.GET("/links", listLinks)
 	}
 }
 
@@ -51,4 +52,14 @@ func getUser(c *gin.Context) {
 		return
 	}
 	c.JSON(200, user)
+}
+
+func listLinks(c *gin.Context) {
+	db := c.MustGet("DB").(*gorm.DB)
+	var links []models.Link
+	if err := db.Find(&links).Error; err != nil {
+		c.JSON(500, gin.H{"error": "获取链接列表失败"})
+		return
+	}
+	c.JSON(200, links)
 }

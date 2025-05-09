@@ -29,13 +29,39 @@ func main() {
 	// 自动迁移表结构
 	db.AutoMigrate(&models.Link{})
 
-	// 导入JSON数据
-	jsonPath := filepath.Join(".", "links2.json") // 使用filepath构造路径
-	log.Println("正在导入links2.json数据...path:", jsonPath)
-	if err := database.ImportLinksFromJSON(db, jsonPath); err != nil {
-		log.Printf("数据导入失败: %v", err)
-	} else {
-		log.Println("数据导入成功")
+	// 检查初始化标记
+	type InitFlag struct {
+		ID     uint `gorm:"primary_key"`
+		Inited bool
+	}
+
+	// 自动迁移标记表
+	db.AutoMigrate(&InitFlag{}, &models.Link{})
+
+	var flag InitFlag
+	db.FirstOrCreate(&flag, InitFlag{ID: 1})
+
+	if !flag.Inited {
+		jsonPath := filepath.Join(".", "links2.json")
+		log.Println("首次启动，正在导入初始数据...")
+
+		// 先清空现有数据（避免重复）
+		if err := db.Exec("DELETE FROM links").Error; err != nil {
+			log.Printf("清空links表失败: %v", err)
+		}
+
+		// 导入数据
+		if err := database.ImportLinksFromJSON(db, jsonPath); err != nil {
+			log.Printf("数据导入失败: %v", err)
+			return // 失败时直接退出，不设置标记
+		}
+
+		// 只有全部导入成功才设置标记
+		flag.Inited = true
+		if err := db.Save(&flag).Error; err != nil {
+			log.Printf("保存初始化标记失败: %v", err)
+		}
+		log.Println("初始数据导入完成")
 	}
 
 	// 初始化Gin引擎

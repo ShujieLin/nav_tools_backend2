@@ -5,12 +5,14 @@ import "github.com/jinzhu/gorm"
 var Cfg *Config
 
 type Config struct {
-	DbPath string
+	DbPath     string
+	ConfigPath string // 新增配置路径
 }
 
 func LoadConfig() {
 	Cfg = &Config{
-		DbPath: "./navtools.db",
+		DbPath:     "./navtools.db",
+		ConfigPath: "./configs", // 默认配置目录
 	}
 }
 
